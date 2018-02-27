@@ -82,4 +82,29 @@ class ExtensibleSearchAPI extends Controller {
 		}
 	}
 
+	/**
+	 *	Retrieve the search suggestions for a page that have been approved (great for client side filtering).
+	 *
+	 *	@URLparameter term <{SEARCH_TERM}> string
+	 *	@return JSON
+	 */
+
+	public function getPageSuggestions($request) {
+
+		if(Config::inst()->get(ExtensibleSearchSuggestion::class, 'enable_suggestions')) {
+			$suggestions = $this->service->getPageSuggestions($request->getVar('page'));
+
+			// Return the search suggestions as JSON.
+
+			$this->getResponse()->addHeader('Content-Type', 'application/json');
+
+			// JSON_PRETTY_PRINT.
+
+			return json_encode($suggestions, 128);
+		}
+		else {
+			return $this->httpError(404);
+		}
+	}
+
 }
