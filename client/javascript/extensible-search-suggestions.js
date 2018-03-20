@@ -1,35 +1,70 @@
-;(function($) {
-	$(function() {
+;
+(function ($) {
+    $(function () {
 
-		// Bind autocomplete to the search form.
+        // Bind autocomplete to the primary search form.
 
-		var search = $('input.extensible-search');
-		if(search.length) {
-			search.autocomplete({
+        var searchInputs = $('input.extensible-search');
+        if (searchInputs.length) {
+            searchInputs.each(function () {
+                var search = $(this);
+                // Retrieve the search suggestions that have been approved.
 
-				// Determine whether to disable search suggestions, based on configuration.
+                var suggestions = [];
+                $.get('extensible-search-api/getPageSuggestions', {
+                    page: search.data('extensible-search-page')
+                })
+                        .done(function (data) {
 
-				disabled: !search.data('suggestions-enabled'),
+                            suggestions = data;
+                        });
 
-				// Enforce a minimum autocomplete length.
+                // Initialise the autocomplete.
 
-				minLength: 3,
+                search.autocomplete({
 
-				// Retrieve the most relevant search suggestions that have been approved.
+                    // Determine whether to disable search suggestions, based on configuration.
 
-				source: function(request, response) {
+                    disabled: !search.data('suggestions-enabled'),
 
-					$.get('extensible-search-api/getSuggestions', {
-						term: request.term,
-						page: search.data('extensible-search-page')
-					})
-					.done(function(data) {
+                    // Enforce a minimum autocomplete length.
 
-						response(data);
-					});
-				}
-			});
-		}
+                    minLength: 3,
 
-	});
+                    // Determine the most relevant search suggestions that have been approved.
+
+                    source: function (request, response) {
+
+                        // Perform client side filtering, which provides a massive performance increase!
+
+                        var term = search.val();
+                        var options = [];
+                        $.each(suggestions, function () {
+
+                            if (term === this.substr(0, term.length)) {
+                                options.push({
+                                    'label': term + '<strong>' + this.substr(term.length) + '</strong>',
+                                    'value': this
+                                });
+
+                                // Enforce a limit.
+
+                                if (options.length === 5) {
+                                    return false;
+                                }
+                            }
+                        });
+                        response(options);
+                    }
+                })
+
+                        // This needs to render HTML.
+
+                        .data('ui-autocomplete')._renderItem = function (ul, item) {
+
+                    return $('<li>').append($('<div>').html(item.label)).appendTo(ul);
+                };
+            });
+        }
+    });
 })(jQuery);
